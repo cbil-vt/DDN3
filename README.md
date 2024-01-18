@@ -1,7 +1,7 @@
 # DDN 3.0
 We developed an efficient and accurate differential network analysis tool – Differential Dependency Networks (DDN).
 DDN is capable of jointly learning sparse common and rewired network structures, which is especially useful for genomics, proteomics, and other biomedical studies.
-DDN 3.0 significantly improves the speed of previous verions of DDN, and is available as a Python package.
+DDN 3.0 significantly improves the speed of previous versions of DDN and is available as a Python package.
 This repository provides the source code and examples of using DDN.
 
 ## Installation
@@ -11,9 +11,9 @@ One way is to install DDN into a new Conda environment. To create and activate a
 conda create -n ddn python=3.11
 conda activate ddn
 ```
-Python 3.12 may have some issue with Numba in Windows.
+Python 3.12 may have some issues with Numba in Windows.
 
-DDN 3.0 can then be installed with the followin command.
+DDN 3.0 can then be installed with the following command.
 ```bash
 pip install ddn3
 ```
@@ -24,7 +24,7 @@ pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://
 ### Option 2: install into an existing Conda environment
 If you want to install DDN into an existing Conda environment, it is suggested to install dependencies from Conda first.
 
-First we need to install some common dependencies.
+First, we need to install some common dependencies.
 ```bash
 $ conda install -c conda-forge numpy scipy numba networkx matplotlib jupyter scipy pandas scikit-learn
 ```
@@ -45,7 +45,7 @@ $ pip install -e ./
 
 ## Usage
 
-This toy example generates two random datasets, and use estimate to estimate two networks, one for each dataset.
+This toy example generates two random datasets and estimates two networks, one for each dataset.
 ```python
 import numpy as np
 from ddn import ddn
@@ -63,13 +63,13 @@ To run tests, go to the folder of DDN3 source code, then run `pytest`.
 ```bash
 pytest tests
 ```
-It will compare output of DDN with reference values. It tests DDN with various acceleration strategies.
+It will compare the output of DDN with reference values. It tests DDN with various acceleration strategies.
 
 ## Contributing
 
 Please report bugs in the issues. 
 You may also email us directly: Yizhi Wang (yzwang@vt.edu), Yingzhou Lu (lyz66@vt.edu), or Yue Wang (yuewang@vt.edu).
-If you are interested in adding features or fixing bug, feel free to contact us.
+If you are interested in adding features or fixing bugs, feel free to contact us.
 
 ## License
 
