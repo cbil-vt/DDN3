@@ -34,7 +34,7 @@ Then run
 pip install ddn3
 ```
 
-Alternatively, you can clone the repository (https://github.com/cbil-vt/DDN3), or just download or unzip it. Then we can install DDN 3.0.
+Alternatively, you can clone the repository (https://github.com/cbil-vt/DDN3), or just download and unzip it. Then we can install DDN 3.0.
 ```bash
 $ pip install ./
 ```
