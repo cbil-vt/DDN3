@@ -65,6 +65,10 @@ pytest tests
 ```
 It will compare the output of DDN with reference values. It tests DDN with various acceleration strategies.
 
+## Experiments
+The simulation-related code can be found at https://github.com/cbil-vt/DDN3_simulation.
+The results of the simulation and the figures are archived here: https://zenodo.org/records/10543473.
+
 ## Contributing
 
 Please report bugs in the issues. 
