@@ -98,6 +98,9 @@ def get_error_measure_two_theta(net_est, net_gt):
     else:
         TPR = 0
 
+    if TPR > 1:
+        print("Recall > 1, check input adjacency matrices: ", TP, P)
+
     # false positive rate
     if N > 0:
         FPR = FP / N
