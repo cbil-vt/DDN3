@@ -6,7 +6,7 @@ import pandas as pd
 from ddn3 import tools
 
 
-def get_diff_comm_net_for_plot(omega1, omega2, gene_names):
+def get_diff_comm_net_for_plot(omega1, omega2, gene_names, thr=1e-4):
     """Generate common and differential networks from DDN outputs
 
     Parameters
@@ -38,15 +38,17 @@ def get_diff_comm_net_for_plot(omega1, omega2, gene_names):
     node_non_isolated : list of str
         Node names that are involved in edges in either common network or differential networks.
     """
-    
+
     # make the coefficient matrices symmetric
     omega1 = (omega1 + omega1.T) / 2
     omega2 = (omega2 + omega2.T) / 2
+    # omega1 = np.maximum(omega1, omega1.T)
+    # omega2 = np.maximum(omega2, omega2.T)
     omega_comm = (omega1 + omega2) / 2
 
     # apply a small threshold to obtain adjacency matrices
-    g1 = tools.get_net_topo_from_mat(omega1)
-    g2 = tools.get_net_topo_from_mat(omega2)
+    g1 = tools.get_net_topo_from_mat(omega1, thr=thr)
+    g2 = tools.get_net_topo_from_mat(omega2, thr=thr)
     gene_names = np.array(gene_names)
 
     # find common and differential networks
@@ -93,7 +95,8 @@ def _get_edge_list(conn_mat, beta_mat, gene_names, group_idx=0):
     """
     conn_mat1 = np.tril(conn_mat, -1)
     n1, n2 = np.where(conn_mat1 > 0)
-    edge_weight = np.abs(beta_mat[n1, n2])
+    edge_weight = beta_mat[n1, n2]
+    # edge_weight = np.abs(beta_mat[n1, n2])
     out = dict(
         gene1=gene_names[n1],
         gene2=gene_names[n2],
@@ -148,6 +151,46 @@ def get_node_type_and_label_two_parts(
         if node[:x_len2] == part2_id:
             labels[node] = node[x_len2 + ofst2 :]
             nodes_type[node] = 1
+
+    return nodes_type, labels
+
+
+def get_node_type_and_label_multi_parts(
+    nodes_show, part_id_lst=["_SP", "_TF"],
+):
+    """Given a list of features, divide them to to groups, and clean their names.
+
+    The first several characters in the name of each feature is related to their group information.
+    For example, for feature "AAAA_GENE", it means a gene in the "_GENE" group and the gene name is "AAAA".
+    For feature "BBBB_TF", it means a gene in "_TF" group with name "BBBB".
+    We want to put thing starting with "_GENE" and "_TF" to two separate groups.
+    We also want to create a simplifed label that do not contain "_GENE" and "_TF" to make plotting easier.
+    
+    Parameters
+    ----------
+    nodes_show : list of str
+        The list of feature names
+    part_id_lst : list of str, optional
+        The label for each group
+
+    Returns
+    -------
+    nodes_type : dict
+        For each name in the feature, give its group index.
+    labels : dict
+        For each name in the feature, give its simplified name.
+    """
+    # TODO: allow choosing between the prefix and suffix
+    x_len_lst = [len(x) for x in part_id_lst]
+
+    # labels contains gene name only, not the suffix
+    nodes_type = dict()
+    labels = dict()
+    for i, node in enumerate(nodes_show):
+        for j in range(len(x_len_lst)):
+            if node[-x_len_lst[j]:] == part_id_lst[j]:
+                labels[node] = node[:-x_len_lst[j]]
+                nodes_type[node] = j
 
     return nodes_type, labels
 

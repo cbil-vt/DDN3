@@ -38,10 +38,13 @@ class DDNParameterSearch:
         ratio_validation=0.2,
         alpha1=0.05,
         alpha2=0.01,
+        err_scale=1.0,
     ) -> None:
         """Initialize the parameter search.
 
         A number of parameters are set here. However, some of them are only used for certain parameter tuning methods.
+
+        TODO: logging options
 
         Parameters
         ----------
@@ -73,6 +76,7 @@ class DDNParameterSearch:
         self.ratio_val = ratio_validation
         self.alpha1 = alpha1
         self.alpha2 = alpha2
+        self.err_scale = err_scale
 
         # derived and outputs
         self.n = int((dat1.shape[0] + dat2.shape[0]) / 2)
@@ -120,7 +124,7 @@ class DDNParameterSearch:
             lambda1_lst=self.l1_lst,
             lambda2_lst=self.l2_lst,
         )
-        l1_est, l2_est = get_lambdas_one_se_2d(val_err, self.l1_lst, self.l2_lst)
+        l1_est, l2_est = get_lambdas_one_se_2d(val_err, self.l1_lst, self.l2_lst, self.err_scale)
         return val_err, l1_est, l2_est
 
     def run_cv_sequential(self):
@@ -134,7 +138,7 @@ class DDNParameterSearch:
             ratio_val=self.ratio_val,
         )
         val_err1 = np.squeeze(val_err1)
-        l1_est = get_lambda_one_se_1d(val_err1, self.l1_lst)
+        l1_est = get_lambda_one_se_1d(val_err1, self.l1_lst, self.err_scale)
 
         val_err2, _, _ = cv_two_lambda(
             self.dat1,
@@ -145,7 +149,7 @@ class DDNParameterSearch:
             ratio_val=self.ratio_val,
         )
         val_err2 = np.squeeze(val_err2)
-        l2_est = get_lambda_one_se_1d(val_err2, self.l2_lst)
+        l2_est = get_lambda_one_se_1d(val_err2, self.l2_lst, self.err_scale)
 
         return [val_err1, val_err2], l1_est, l2_est
 
@@ -160,7 +164,7 @@ class DDNParameterSearch:
             ratio_val=self.ratio_val,
         )
         val_err = np.squeeze(val_err)
-        l1_est = get_lambda_one_se_1d(val_err, self.l1_lst)
+        l1_est = get_lambda_one_se_1d(val_err, self.l1_lst, self.err_scale)
         l2_est = get_lambda2_bai(self.dat1, self.dat2, alpha=self.alpha2)
 
         return val_err, l1_est, l2_est
@@ -178,7 +182,7 @@ class DDNParameterSearch:
             ratio_val=self.ratio_val,
         )
         val_err = np.squeeze(val_err)
-        l2_est = get_lambda_one_se_1d(val_err, self.l2_lst)
+        l2_est = get_lambda_one_se_1d(val_err, self.l2_lst, self.err_scale)
 
         return val_err, l1_est, l2_est
 
@@ -261,13 +265,13 @@ def get_lambda2_bai(
     rho1rho2 = np.sum(pd) / p / (p - 1)
 
     lmb2 = (np.exp(2 * s) - 1) / (np.exp(2 * s) + 1) / 2 * (1 - rho1rho2)
-    print("Avg rho is ", rho1rho2)
-    print("lambda2 is ", lmb2)
+    # print("Avg rho is ", rho1rho2)
+    # print("lambda2 is ", lmb2)
 
     return lmb2
 
 
-def get_lambda_one_se_1d(val_err, lambda_lst):
+def get_lambda_one_se_1d(val_err, lambda_lst, err_scale=1.0, verbose=0):
     """Choose a lambda from a list of lambda values using the one standard error rule
 
     let K be the number of CV repeats, L the number of lambda values.
@@ -286,15 +290,17 @@ def get_lambda_one_se_1d(val_err, lambda_lst):
 
     """
     val_err_mean = np.mean(val_err, axis=0)
-    val_err_std = np.std(val_err, axis=0)
+    val_err_std = np.std(val_err, axis=0)*err_scale
     n_cv = val_err.shape[0]
 
     idx = np.argmin(val_err_mean)
-    val_err_mean[:idx] = -10000
+    if idx > 0:
+        val_err_mean[:idx-1] = -10000
 
     cut_thr = val_err_mean[idx] + val_err_std[idx] / np.sqrt(n_cv)  # standard error
     if np.max(val_err_mean) < cut_thr:
-        print("One SE rule failed.")
+        if verbose > 0:
+            print("One SE rule failed.")
         return lambda_lst[-1]
     else:
         # idx_thr = np.max(np.where(val_err_mean <= cut_thr)[0])
@@ -302,7 +308,7 @@ def get_lambda_one_se_1d(val_err, lambda_lst):
         return lambda_lst[idx_thr]
 
 
-def get_lambdas_one_se_2d(val_err, lambda1_lst, lambda2_lst):
+def get_lambdas_one_se_2d(val_err, lambda1_lst, lambda2_lst, err_scale=1.0, verbose=0):
     """Choose a lambda from a list of lambda values using the one standard error rule
 
     After finding the minimum value, we find all the combinations of lambda1 and lambda2 values that are at least one
@@ -335,8 +341,9 @@ def get_lambdas_one_se_2d(val_err, lambda1_lst, lambda2_lst):
     n_cv = val_err.shape[0]
 
     idx1, idx2 = np.unravel_index(val_err_mean.argmin(), val_err_mean.shape)
-    print(idx1, idx2)
-    print("l1_org, l2_org ", lambda1_lst[idx1], lambda2_lst[idx2])
+    if verbose > 1:
+        print(idx1, idx2)
+        print("l1_org, l2_org ", lambda1_lst[idx1], lambda2_lst[idx2])
     msk = np.zeros_like(val_err_mean)
     msk[idx1:, idx2:] = 1.0
     se = val_err_std[idx1, idx2] / np.sqrt(n_cv)
@@ -344,16 +351,18 @@ def get_lambdas_one_se_2d(val_err, lambda1_lst, lambda2_lst):
     z = z * msk
 
     if np.max(z) == 0:
-        print("One SE rule failed.")
+        if verbose > 0:
+            print("One SE rule failed.")
         return np.max(lambda1_lst), np.max(lambda2_lst)
     else:
         m1, m2 = val_err_mean.shape
         cord1, cord2 = np.meshgrid(np.arange(m1), np.arange(m2), indexing="ij")
         d = (cord1 - idx1) ** 2 * lmb1_scale + (cord2 - idx2) ** 2
-        d[z < 1] = 100000
+        d[z < err_scale] = 100000
         idx1a, idx2a = np.unravel_index(d.argmin(), d.shape)
-        print(idx1a, idx2a)
-        print("l1, l2 ", lambda1_lst[idx1a], lambda2_lst[idx2a])
+        if verbose > 1:
+            print(idx1a, idx2a)
+            print("l1, l2 ", lambda1_lst[idx1a], lambda2_lst[idx2a])
 
         return lambda1_lst[idx1a], lambda2_lst[idx2a]
 
@@ -401,6 +410,7 @@ def cv_two_lambda(
     ratio_val=0.2,
     lambda1_lst=np.arange(0.05, 1.05, 0.05),
     lambda2_lst=np.arange(0.025, 0.525, 0.025),
+    verbose=0,
 ):
     """Cross validation by grid search lambda1 and lambda2
 
@@ -445,10 +455,11 @@ def cv_two_lambda(
     mthd = "resi"
     # if len(lambda2_lst) == 1 and lambda2_lst[0] == 0:
     #     mthd = 'strongrule'
-    print(mthd)
+    # print(mthd)
 
     for n in range(n_cv):
-        print("Repeat ============", n)
+        if verbose>0:
+            print("Repeat ============", n)
         msk1 = np.zeros(n1)
         msk1[np.random.choice(n1, n1_train, replace=False)] = 1
         msk2 = np.zeros(n2)

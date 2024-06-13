@@ -23,6 +23,8 @@ def draw_network_for_ddn(
     fig_size=(16, 9),
     font_size_scale=1,
     node_size_scale=1,
+    min_alpha=0.4,
+    dashed=True,
     pdf_name="",
 ):
     """Draw networks for DDN
@@ -97,6 +99,7 @@ def draw_network_for_ddn(
     G = create_nx_graph(
         edges_df,
         nodes_to_draw,
+        min_alpha=min_alpha,
         mode=mode,
         nodes_type=nodes_type,
     )
@@ -117,9 +120,11 @@ def draw_network_for_ddn(
         labels=labels,
         node_type=nodes_type,
         cen_lst=cen_lst,
+        rad_lst=rad_lst,
         fig_size=fig_size,
         font_size_scale=font_size_scale,
         node_size_scale=node_size_scale,
+        use_dashed=dashed,
     )
 
     # export figure
@@ -132,7 +137,7 @@ def draw_network_for_ddn(
 def create_nx_graph(
     edges_df,
     nodes_show,
-    min_alpha=0.2,
+    min_alpha=0.4,
     max_alpha=1.0,
     mode="common",
     nodes_type=None,
@@ -172,7 +177,12 @@ def create_nx_graph(
         Generated graph
     """
     # create the overall graph
-    color_condition = {0: [0.7, 0.7, 0.7], 1: [0, 0, 1], 2: [1, 0, 0], 3: [0, 0.6, 0.3]}
+    color_condition = {
+        0: [0.7, 0.7, 0.7],
+        1: [0.21484375, 0.4921875, 0.71875],
+        2: [0.890625, 0.1015625, 0.109375],
+        3: [0, 0.6, 0.3],
+    }
     beta_max = np.max(edges_df["weight"])
 
     if nodes_type is None:
@@ -208,10 +218,12 @@ def plot_network(
     labels,
     node_type,
     cen_lst,
+    rad_lst,
     fig_size,
     font_size_scale=1,
     node_size_scale=2,
     font_alpha_min=0.4,
+    use_dashed=True,
 ):
     """Draw the network
 
@@ -256,7 +268,7 @@ def plot_network(
     # in case all nodes have degree zero
     # too large nodes are ugly
     s_min = (d_min * 72) ** 2
-    s_min = min(s_min, 36*36)
+    s_min = min(s_min, 36 * 36)
     node_size = np.array([d for n, d in G.degree()]) + 0.1
     node_size = node_size / (np.max(node_size) + 1)
     node_size = node_size * s_min * node_size_scale
@@ -266,19 +278,29 @@ def plot_network(
     # too large font may go outside the figure
     font_size = d_min * 72 * 0.8 * font_size_scale
     font_size = min(font_size, fig_half_size * 0.1 * 20)
-    font_size_lst = font_size + node_size*0
+    font_size_lst = font_size + node_size * 0
     # font_size_lst = font_size * (
     #     np.abs(node_size) / np.max(node_size) * (1.0 - 0.5) + 0.5
     # )
-    font_alpha_lst = np.abs(node_size) / np.max(node_size) * (1.0 - font_alpha_min) + font_alpha_min
+    font_alpha_lst = (
+        np.abs(node_size) / np.max(node_size) * (1.0 - font_alpha_min) + font_alpha_min
+    )
 
     # draw
     fig, ax = plt.subplots(figsize=fig_size)
+
+    # color_lst = []
+    # for n in node_type:
+    #     if n[-2:] == '_0':
+    #         color_lst.append("blue")
+    #     else:
+    #         color_lst.append("lightblue")
 
     nx.draw_networkx_nodes(
         G,
         pos=pos,
         ax=ax,
+        # node_color=color_lst,
         node_color="lightblue",
         node_size=node_size,
         alpha=0.5,
@@ -289,27 +311,76 @@ def plot_network(
     # too thick edges are ugly
     edges = G.edges()
     if len(edges) > 0:
-        edge_color = [G[u][v]["color"] for u, v in edges]
+        edge_color = np.array([G[u][v]["color"] for u, v in edges])
         edge_weight = np.array([G[u][v]["weight"] for u, v in edges])
+
+        e_mean = np.mean(edge_weight)
+        e_std = np.std(edge_weight)
+        std_scl = 1
+        edge_weight[edge_weight < e_mean - std_scl * e_std] = e_mean - std_scl * e_std
+        edge_weight[edge_weight > e_mean + std_scl * e_std] = e_mean + std_scl * e_std
+        print(np.min(edge_weight), np.max(edge_weight), len(edge_weight))
 
         # when there are too many edges, make the edge thin
         # edge weight also in points, 1 inch = 72 points
-        d_min1 = min(d_min, 0.25)
+        d_min1 = min(d_min, 0.1)
         edge_weight = edge_weight / np.max(edge_weight) * d_min1 * 72 / 6
         if len(edge_weight) > 200:
             edge_weight = edge_weight / len(edge_weight) * 200
 
-        nx.draw_networkx_edges(
-            G,
-            pos=pos,
-            ax=ax,
-            edgelist=edges,
-            edge_color=edge_color,
-            width=edge_weight,
-        )
+        if use_dashed:
+            edge_grp = []
+            edge0 = []
+            edge1 = []
+            for u, v in edges:
+                if u[-1:] == v[-1:]:
+                    edge_grp.append(0)
+                    edge0.append([u, v])
+                else:
+                    edge_grp.append(1)
+                    edge1.append([u, v])
+            edge_grp = np.array(edge_grp)
+
+            nx.draw_networkx_edges(
+                G,
+                pos=pos,
+                ax=ax,
+                edgelist=edge0,
+                edge_color=edge_color[edge_grp == 0],
+                width=edge_weight[edge_grp == 0],
+                style="dashed",
+            )
+
+            nx.draw_networkx_edges(
+                G,
+                pos=pos,
+                ax=ax,
+                edgelist=edge1,
+                edge_color=edge_color[edge_grp == 1],
+                width=edge_weight[edge_grp == 1],
+                style="solid",
+            )
+        else:
+            nx.draw_networkx_edges(
+                G,
+                pos=pos,
+                ax=ax,
+                edgelist=edges,
+                edge_color=edge_color,
+                width=edge_weight,
+                style="solid",
+            )
 
     _draw_network_labels(
-        ax, pos, d_min, node_type, cen_lst, labels, font_size_lst, font_alpha_lst
+        ax,
+        pos,
+        d_min,
+        node_type,
+        cen_lst,
+        rad_lst,
+        labels,
+        font_size_lst,
+        font_alpha_lst,
     )
 
     ax.set_xlim((-fig_size[0] / 2, fig_size[0] / 2))
@@ -365,9 +436,14 @@ def get_pos_multi_parts(
         for node in nodes_all:
             if nodes_type[node] == fea_id:
                 nodes.append(node)
-        pos, d_min = _get_pos_one_part(
-            nodes, cen=cen_lst[cntt], rad=rad_lst[cntt], pos=pos
-        )
+        if rad_lst[cntt][0] > 0:
+            pos, d_min = _get_pos_one_part(
+                nodes, cen=cen_lst[cntt], rad=rad_lst[cntt], pos=pos
+            )
+        else:
+            pos, d_min = _get_pos_one_part_line(
+                nodes, cen=cen_lst[cntt], rad=rad_lst[cntt][1], pos=pos
+            )
         d_min_lst.append(d_min)
         cntt += 1
     d_min = np.min(np.array(d_min_lst))
@@ -420,12 +496,34 @@ def _get_pos_one_part(
     return pos, d_min
 
 
+def _get_pos_one_part_line(
+    nodes_show,
+    cen=(0.0, 0.0),
+    rad=1.0,
+    pos=None,
+):
+    n = len(nodes_show)
+    if pos is None:
+        pos = dict()
+    pos_y = np.linspace(-rad, rad, n, endpoint=True)
+    for i, node in enumerate(nodes_show):
+        pos[node] = np.array([cen[0], cen[1] + pos_y[i]])
+    if len(pos_y) > 1:
+        d_min = pos_y[1] - pos_y[0]
+        if d_min > 0.1:
+            d_min = 0.1
+    else:
+        d_min = 0.1
+    return pos, d_min
+
+
 def _draw_network_labels(
     ax,
     pos,
     d_min,
     node_type,
     cen_lst,
+    rad_lst,
     labels,
     font_size_lst,
     font_alpha_lst,
@@ -462,23 +560,28 @@ def _draw_network_labels(
         x1 = x - cen_lst[fea_idx][0]
         y1 = y - cen_lst[fea_idx][1]
 
-        # rotate labels to make it point to the center
-        # this allows larger fonts
-        # treat labels on the right and those on the left differently
-        angle = math.atan2(y1, np.abs(x1)) / math.pi * 180
-        if x1 < 0:
-            angle = -angle
-
         # this makes "1" and 1 labeled the same
         if not isinstance(label, str):
             label = str(label)
 
-        nn = np.sqrt(x1**2 + y1**2)
-        x1n = x1 / nn
-        y1n = y1 / nn
+        # rotate labels to make it point to the center
+        # this allows larger fonts
+        # treat labels on the right and those on the left differently
+        if rad_lst[fea_idx][0] > 0:
+            angle = math.atan2(y1, np.abs(x1)) / math.pi * 180
+            if x1 < 0:
+                angle = -angle
 
-        x_ext = x + x1n * (len(label) / 2 * font_size_lst[cnt] / 72 + d_min / 4)
-        y_ext = y + y1n * (len(label) / 2 * font_size_lst[cnt] / 72 + d_min / 4)
+            nn = np.sqrt(x1**2 + y1**2)
+            x1n = x1 / nn
+            y1n = y1 / nn
+
+            x_ext = x + x1n * (len(label) / 2 * font_size_lst[cnt] / 72 + d_min / 4 * 2)
+            y_ext = y + y1n * (len(label) / 2 * font_size_lst[cnt] / 72 + d_min / 4 * 2)
+        else:
+            angle = 0
+            x_ext = x
+            y_ext = y
 
         _ = ax.text(
             x_ext,
