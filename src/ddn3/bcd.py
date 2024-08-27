@@ -3,8 +3,8 @@
 This module implements the original block coordinate descent in [1], as well as various accelerated versions.
 Most methods are also Numba accelerated, except for `bcd_org_old`, which is left for comparison purposes.
 
-For data with lots of samples, consider using `bcd_corr`.
-For data with lots of features, the `bcd_residual` is faster.
+For iddn_data with lots of samples, consider using `bcd_corr`.
+For iddn_data with lots of features, the `bcd_residual` is faster.
 
 [1] Zhang, Bai, and Yue Wang. "Learning structural changes of Gaussian graphical models in controlled experiments." UAI (2010).
 """
@@ -209,9 +209,9 @@ def bcd_residual(
     beta_in : array_like, length 2P
         Initial beta. If initialization is not needed, use an array of all zeros
     X1 : array_like, shape N1 by P
-        The data from condition 1
+        The iddn_data from condition 1
     X2 : array_like, shape N2 by P
-        The data from condition 2
+        The iddn_data from condition 2
     y1_resi : array_like, shape N1 by 1
         The initial residual signal for condition 1. If warm start is not used, it is column CurrIdx of X1.
     y2_resi : array_like, shape N2 by 1

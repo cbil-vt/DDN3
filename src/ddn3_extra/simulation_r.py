@@ -39,7 +39,7 @@ def huge_omega(
             graph=graph_type,
             v=0.5,
             u=0.2,
-            prob=3 / n_node,
+            prob=2 / n_node,
             verbose=verbose,
         )
         omega = np.array(huge_graph.rx2("omega"))
@@ -78,7 +78,9 @@ def huge_omega(
     return omega, omega1, omega2
 
 
-def make_two_from_one(omega, ratio_diff=0.25, ratio=0.9, thr=1e-4, verbose=False):
+def make_two_from_one(
+    omega, dep_allow=None, ratio_diff=0.25, ratio=0.9, thr=1e-4, verbose=False
+):
     n_node = len(omega)
 
     n_edge = round((np.sum(np.abs(omega) > thr) - n_node) / 2)
@@ -86,9 +88,12 @@ def make_two_from_one(omega, ratio_diff=0.25, ratio=0.9, thr=1e-4, verbose=False
     msk = np.tril(np.ones(n_node), k=-1)
     omega_lower = np.copy(omega)
     omega_lower[msk == 0] = 100.0
+    if dep_allow is not None:
+        dep_in = dep_allow + dep_allow.T
+        omega_lower[dep_in == 0] = 100.0
     idx_zero = np.where(np.abs(omega_lower) < thr)
 
-    omega_ng = np.copy(omega)
+    omega_ng = np.copy(np.abs(omega))
     omega_ng[np.arange(n_node), np.arange(n_node)] = 0
     fill_value = np.mean(omega_ng[np.abs(omega_ng) > thr]) * ratio
     if verbose:
@@ -104,18 +109,24 @@ def make_two_from_one(omega, ratio_diff=0.25, ratio=0.9, thr=1e-4, verbose=False
     # try to generate two conditions
     if n_diff > 0:
         # eig_min = -1
-        for _ in range(10000):
+        nn = 0
+        for nn in range(100):
             idx_chg = np.random.choice(len(idx_zero[0]), n_diff * 2, replace=False)
             idx_chg1 = idx_chg[:n_diff]
             idx_chg2 = idx_chg[n_diff:]
 
+            n1 = len(idx_chg1)
+            fill1 = fill_value * np.sign((np.random.rand(n1) - 0.5))
+            n2 = len(idx_chg2)
+            fill2 = fill_value * np.sign((np.random.rand(n2) - 0.5))
+
             diff1 = np.zeros((n_node, n_node))
-            diff1[idx_zero[0][idx_chg1], idx_zero[1][idx_chg1]] = fill_value
+            diff1[idx_zero[0][idx_chg1], idx_zero[1][idx_chg1]] = fill1
             diff1 = diff1 + diff1.T
             omega1 = omega + diff1
 
             diff2 = np.zeros((n_node, n_node))
-            diff2[idx_zero[0][idx_chg2], idx_zero[1][idx_chg2]] = fill_value
+            diff2[idx_zero[0][idx_chg2], idx_zero[1][idx_chg2]] = fill2
             diff2 = diff2 + diff2.T
             omega2 = omega + diff2
 
@@ -127,5 +138,59 @@ def make_two_from_one(omega, ratio_diff=0.25, ratio=0.9, thr=1e-4, verbose=False
             eig_min = np.min([np.min(eig1), np.min(eig2)])
             if eig_min > 0:
                 break
+
+        if nn >= 99:
+            raise ("Failed")
+
+    return omega1, omega2
+
+
+def make_two_from_one_by_removing(
+    omega_in,
+    ratio_diff=0.25,
+    ratio_diag=1.0,
+    thr=1e-4,
+    verbose=False,
+):
+    n_node = len(omega_in)
+
+    omega = np.copy(omega_in)
+    omega[np.arange(n_node), np.arange(n_node)] *= ratio_diag
+
+    omega_ng = np.copy(omega)
+    omega_ng[np.arange(n_node), np.arange(n_node)] = 0.0
+
+    n_edge = round((np.sum(np.abs(omega_ng) > thr)) / 2)
+    idx_nonzero = np.where(np.abs(omega_ng) > thr)
+    n_diff = round(n_edge * ratio_diff)
+    omega1 = np.copy(omega)
+    omega2 = np.copy(omega)
+
+    # try to generate two conditions
+    if n_diff > 0:
+        for nn in range(100):
+            idx_chg = np.random.choice(len(idx_nonzero[0]), n_diff * 2, replace=False)
+            idx_chg1 = idx_chg[:n_diff]
+            idx_chg2 = idx_chg[n_diff:]
+
+            omega1 = np.copy(omega)
+            omega1[idx_nonzero[0][idx_chg1], idx_nonzero[1][idx_chg1]] = 0
+            omega1[idx_nonzero[1][idx_chg1], idx_nonzero[0][idx_chg1]] = 0
+
+            omega2 = np.copy(omega)
+            omega2[idx_nonzero[0][idx_chg2], idx_nonzero[1][idx_chg2]] = 0
+            omega2[idx_nonzero[1][idx_chg2], idx_nonzero[0][idx_chg2]] = 0
+
+            eig1, _ = np.linalg.eig(omega1)
+            eig2, _ = np.linalg.eig(omega2)
+
+            if verbose:
+                print("Smallest eigen values ", np.min(eig1), np.min(eig2))
+
+            eig_min = np.min([np.min(eig1), np.min(eig2)])
+            if eig_min > 0:
+                break
+            if nn >= 99:
+                raise ("Failed")
 
     return omega1, omega2

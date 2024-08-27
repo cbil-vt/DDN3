@@ -1,6 +1,6 @@
 import os
 
-os.environ["R_HOME"] = "C:\\Program Files\\R\\R-4.4.0"
+os.environ["R_HOME"] = "C:\\Program Files\\R\\R-4.4.1"
 
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr

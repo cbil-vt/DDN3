@@ -23,7 +23,7 @@ def get_diff_comm_net_for_plot(omega1, omega2, gene_names, thr=1e-4):
     comm_edge : pandas.DataFrame
         Data frame containing information of edges in common networks.
         The first two columns means the two genes in each edge.
-        The fourth column gives the weights of that edge. 
+        The fourth column gives the weights of that edge.
         The weights is the absolute value of the DDN coefficient.
     dif1_edge : pandas.DataFrame
         Data frame containing information of differential edges from condition 1.
@@ -33,7 +33,7 @@ def get_diff_comm_net_for_plot(omega1, omega2, gene_names, thr=1e-4):
         The contents are similart to `comm_edge`.
     diff_edge : pandas.DataFrame
         Data frame containing information of edges in the differential networks.
-        The contents are similart to `comm_edge`, except that the third column 
+        The contents are similart to `comm_edge`, except that the third column
         labels whether this edge come from condition 1 or 2.
     node_non_isolated : list of str
         Node names that are involved in edges in either common network or differential networks.
@@ -52,9 +52,9 @@ def get_diff_comm_net_for_plot(omega1, omega2, gene_names, thr=1e-4):
     gene_names = np.array(gene_names)
 
     # find common and differential networks
-    comm_adj_mat = (g1 + g2) == 2
-    dif1_adj_mat = g1 != comm_adj_mat
-    dif2_adj_mat = g2 != comm_adj_mat
+    comm_adj_mat = np.array((g1 + g2) == 2)
+    dif1_adj_mat = np.array(g1 != comm_adj_mat)
+    dif2_adj_mat = np.array(g2 != comm_adj_mat)
 
     # Get edges in format `gene1`, `gene2`, `condition`, `beta`
     comm_edge = _get_edge_list(comm_adj_mat, omega_comm, gene_names, group_idx=0)
@@ -71,7 +71,7 @@ def get_diff_comm_net_for_plot(omega1, omega2, gene_names, thr=1e-4):
 
 
 def _get_edge_list(conn_mat, beta_mat, gene_names, group_idx=0):
-    """Create a pandas data frame reporting the edges
+    """Create a pandas iddn_data frame reporting the edges
 
     Parameters
     ----------
@@ -79,7 +79,7 @@ def _get_edge_list(conn_mat, beta_mat, gene_names, group_idx=0):
         Adjacency matrix for a graph
     beta_mat : ndarray
         The coefficient matrix of a graph
-    gene_names : list of str
+    gene_names : array_like
         Gane names
     group_idx : int, optional
         The group labeling, by default 0
@@ -116,7 +116,7 @@ def get_node_type_and_label_two_parts(
     For feature "TF_BBBB", it means a gene in "TF" group with name "BBBB".
     We want to put thing starting with "TF" and "SP" to two separate groups.
     We also want to create a simplifed label that do not contain "SP" and "TP" to make plotting easier.
-    
+
     Parameters
     ----------
     nodes_show : list of str
@@ -156,21 +156,22 @@ def get_node_type_and_label_two_parts(
 
 
 def get_node_type_and_label_multi_parts(
-    nodes_show, part_id_lst=["_SP", "_TF"],
+    nodes_show,
+    part_id_lst=("_SP", "_TF"),
 ):
-    """Given a list of features, divide them to to groups, and clean their names.
+    """Given a list of features, divide them to two groups, and clean their names.
 
     The first several characters in the name of each feature is related to their group information.
     For example, for feature "AAAA_GENE", it means a gene in the "_GENE" group and the gene name is "AAAA".
     For feature "BBBB_TF", it means a gene in "_TF" group with name "BBBB".
     We want to put thing starting with "_GENE" and "_TF" to two separate groups.
     We also want to create a simplifed label that do not contain "_GENE" and "_TF" to make plotting easier.
-    
+
     Parameters
     ----------
     nodes_show : list of str
         The list of feature names
-    part_id_lst : list of str, optional
+    part_id_lst : array_like, optional
         The label for each group
 
     Returns
@@ -188,20 +189,20 @@ def get_node_type_and_label_multi_parts(
     labels = dict()
     for i, node in enumerate(nodes_show):
         for j in range(len(x_len_lst)):
-            if node[-x_len_lst[j]:] == part_id_lst[j]:
-                labels[node] = node[:-x_len_lst[j]]
+            if node[-x_len_lst[j] :] == part_id_lst[j]:
+                labels[node] = node[: -x_len_lst[j]]
                 nodes_type[node] = j
 
     return nodes_type, labels
 
 
 def get_edge_subset_by_name(edge_df, name_match="TF"):
-    """Extract subset of edges in the data frame.
+    """Extract subset of edges in the iddn_data frame.
 
     Parameters
     ----------
     edge_df : pandas.DataFrame
-        The data frame containing edges.
+        The iddn_data frame containing edges.
     name_match : str, optional
         The pattern of the name to match, by default "TF"
         Must be at the beginning of the name of each feature.

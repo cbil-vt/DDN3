@@ -65,13 +65,13 @@ def scan_erro_measure_dingo(comm_dingo, diff_dingo, comm_gt, diff_gt):
         Performance measures for the differential network estimation. Shape (M, 5).
 
     """
-    thr_rg_comm = np.arange(0, 1, 0.01)
+    thr_rg_comm = list(np.arange(0, 1, 0.01))
     res_comm_dingo = np.zeros((len(thr_rg_comm), 5))
     for i, thr in enumerate(thr_rg_comm):
         comm_est = tools.get_net_topo_from_mat(comm_dingo, thr=thr)
         res_comm_dingo[i] = get_error_measure_two_theta(comm_est, comm_gt)
 
-    thr_rg_diff = np.arange(0, 50, 0.1)
+    thr_rg_diff = list(np.arange(0, 50, 0.1))
     res_diff_dingo = np.zeros((len(thr_rg_diff), 5))
     for i, thr in enumerate(thr_rg_diff):
         diff_est = tools.get_net_topo_from_mat(diff_dingo, thr=thr)

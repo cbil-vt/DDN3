@@ -2,15 +2,15 @@
 
 Find strategies are implemented.
 
-- `cv_joint`: grid search CV for lambda1 and lambda2. This is time-consuming for larger data.
+- `cv_joint`: grid search CV for lambda1 and lambda2. This is time-consuming for larger iddn_data.
 - `cv_sequential`: CV for lambda1 first, then use the determined lambda1 to do CV on lambda2.
 - `cv_bai`:  CV for lambda1 first, then use the method in [1] to directly calculate lambda2.
 - `mb_cv`: use theorem 3 in [2] to directly calculate lambda1, and use CV to get lambda2.
 - `mb_bai`: use theorem 3 in [2] to directly calculate lambda1, and the method in [1] to get lambda2.
 
-If the data set is not too large, `cv_joint` is a better choice.
-If the data is larger, it is better to use the `cv_sequential` option.
-If the data is really large, consider `cv_bai`.
+If the iddn_data set is not too large, `cv_joint` is a better choice.
+If the iddn_data is larger, it is better to use the `cv_sequential` option.
+If the iddn_data is really large, consider `cv_bai`.
 
 A bette approach is to manually choose a set of lambda1 and select the one that leads to a reasonable network.
 By utilizing the prior knowledge, it is more likely to obtain the network that is usable.
@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 from ddn3 import ddn
 from ddn3 import tools
+from joblib import Parallel, delayed
 
 
 class DDNParameterSearch:
@@ -49,9 +50,9 @@ class DDNParameterSearch:
         Parameters
         ----------
         dat1 : array_like
-            The first data.
+            The first iddn_data.
         dat2 : array_like
-            The second data.
+            The second iddn_data.
         lambda1_list : array_like
             A list of lambda1 values to search
         lambda2_list : array_like
@@ -60,8 +61,8 @@ class DDNParameterSearch:
             The number of repeats. As we use repeated K-fold CV, `n_cv` can be as large as you like.
             Usually, a value of 10 or 20 is sufficient.
         ratio_validation : float
-            The ratio of data that we used for validation. The remaining data is for training.
-            As we use repeated CV, each time the training data is different.
+            The ratio of iddn_data that we used for validation. The remaining iddn_data is for training.
+            As we use repeated CV, each time the training iddn_data is different.
         alpha1 : float
             The alpha used in theorem 3 of MB algorithm [2].
         alpha2 : float
@@ -124,7 +125,9 @@ class DDNParameterSearch:
             lambda1_lst=self.l1_lst,
             lambda2_lst=self.l2_lst,
         )
-        l1_est, l2_est = get_lambdas_one_se_2d(val_err, self.l1_lst, self.l2_lst, self.err_scale)
+        l1_est, l2_est = get_lambdas_one_se_2d(
+            val_err, self.l1_lst, self.l2_lst, self.err_scale
+        )
         return val_err, l1_est, l2_est
 
     def run_cv_sequential(self):
@@ -217,7 +220,7 @@ def get_lambda1_mb(alpha, n, p, mthd=0):
     """
     lmb1 = 0.5
     if mthd == 0:
-        # The MB paper do not have 1/2 factor for data term
+        # The MB paper do not have 1/2 factor for iddn_data term
         # To make things consistent, we further divide by 2
         lmb1 = 2 / np.sqrt(n) * norm.ppf(1 - alpha / (2 * p * n * n)) / 2
         # lmb1 = 2 / np.sqrt(n) * norm.ppf(1 - alpha / (2 * p * n * n))
@@ -237,9 +240,9 @@ def get_lambda2_bai(
     Parameters
     ----------
     x1 : array_like
-        The data for condition 1
+        The iddn_data for condition 1
     x2 : array_like
-        The data for condition 2
+        The iddn_data for condition 2
     alpha : float
         The parameter controlling false positives
 
@@ -290,12 +293,12 @@ def get_lambda_one_se_1d(val_err, lambda_lst, err_scale=1.0, verbose=0):
 
     """
     val_err_mean = np.mean(val_err, axis=0)
-    val_err_std = np.std(val_err, axis=0)*err_scale
+    val_err_std = np.std(val_err, axis=0) * err_scale
     n_cv = val_err.shape[0]
 
     idx = np.argmin(val_err_mean)
     if idx > 0:
-        val_err_mean[:idx-1] = -10000
+        val_err_mean[:idx] = -10000
 
     cut_thr = val_err_mean[idx] + val_err_std[idx] / np.sqrt(n_cv)  # standard error
     if np.max(val_err_mean) < cut_thr:
@@ -382,7 +385,7 @@ def calculate_regression(data, topo_est):
     Parameters
     ----------
     data : array_like
-        All data
+        All iddn_data
     topo_est : array_like
         Estimated adjacency matrix
 
@@ -391,16 +394,56 @@ def calculate_regression(data, topo_est):
 
     """
     n_fea = data.shape[1]
-    g_asso = np.eye(n_fea, dtype=np.double)
+    g_asso = np.zeros((n_fea, n_fea), dtype=np.double)
+    topo_est = np.abs(topo_est)
+    n_max = 20
+    if n_max < 20:
+        n_max = 20
+
+    out = Parallel(n_jobs=16)(
+        delayed(_regression_one_node)(
+            data=data,
+            topo_now=topo_est[i],
+            i=i,
+            n_max=n_max,
+        )
+        for i in range(n_fea)
+    )
+
+    # out = []
+    # for i in range(n_fea):
+    #     if i % 10 == 0:
+    #         print("fea", i)
+    #     out0 = _regression_one_node(
+    #         iddn_data=iddn_data,
+    #         topo_now=topo_est[i],
+    #         i=i,
+    #         n_max=n_max,
+    #     )
+    #     out.append(out0)
+
     for i in range(n_fea):
-        pred_idx = np.where(topo_est[i] > 0)[0]
-        if len(pred_idx) == 0:
-            continue
+        if len(out[i][1]) > 0:
+            g_asso[i, out[i][1]] = out[i][0]
+
+    return g_asso
+
+
+def _regression_one_node(data, topo_now, i, n_max):
+    pred_idx = np.where(topo_now > 0)[0]
+
+    # If there are too many predictors, choose some top ones
+    if len(pred_idx) > n_max:
+        pred_idx = np.argsort(-topo_now)[:n_max]
+    # print(len(pred_idx))
+    if len(pred_idx) == 0:
+        out = pred_idx
+    else:
         y = data[:, i]
         x = data[:, pred_idx]
-        out = np.linalg.lstsq(x, y, rcond=None)
-        g_asso[i, pred_idx] = out[0]
-    return g_asso
+        out = np.linalg.lstsq(x, y, rcond=None)[0]
+
+    return out, pred_idx
 
 
 def cv_two_lambda(
@@ -429,7 +472,7 @@ def cv_two_lambda(
     n_cv : int
         Number of repeats. Can be as large as you like, as we re-sample each time.
     ratio_val : float
-        Ratio of data for validation. The remaining is used for training.
+        Ratio of iddn_data for validation. The remaining is used for training.
     lambda1_lst : array_like
         Values of lambda1 for searching
     lambda2_lst : array_like
@@ -458,7 +501,7 @@ def cv_two_lambda(
     # print(mthd)
 
     for n in range(n_cv):
-        if verbose>0:
+        if verbose > 0:
             print("Repeat ============", n)
         msk1 = np.zeros(n1)
         msk1[np.random.choice(n1, n1_train, replace=False)] = 1
@@ -470,20 +513,30 @@ def cv_two_lambda(
         g2_val = tools.standardize_data(dat2[msk2 == 0])
 
         for i, lambda1 in enumerate(lambda1_lst):
-            # print(n, i)
             for j, lambda2 in enumerate(lambda2_lst):
-                g_beta_est = ddn.ddn(
+                print(n, i, j, "s0")
+                # FIXME: choose number of cores as a parameter
+                g_beta_est = ddn.ddn_parallel(
                     g1_train,
                     g2_train,
                     lambda1=lambda1,
                     lambda2=lambda2,
                     mthd=mthd,
+                    n_process=16,
                 )
+                # g_beta_est = ddn.ddn(
+                #     g1_train,
+                #     g2_train,
+                #     lambda1=lambda1,
+                #     lambda2=lambda2,
+                #     mthd=mthd,
+                # )
                 g1_net_est = tools.get_net_topo_from_mat(g_beta_est[0])
                 g2_net_est = tools.get_net_topo_from_mat(g_beta_est[1])
-                g1_coef = calculate_regression(g1_train, g1_net_est)
+                print(n, i, j, "s1")
+                g1_coef = calculate_regression(g1_train, g1_net_est * g_beta_est[0])
                 g1_coef[np.arange(n_node), np.arange(n_node)] = 0
-                g2_coef = calculate_regression(g2_train, g2_net_est)
+                g2_coef = calculate_regression(g2_train, g2_net_est * g_beta_est[1])
                 g2_coef[np.arange(n_node), np.arange(n_node)] = 0
                 rec_ratio1 = np.linalg.norm(
                     g1_val @ g1_coef.T - g1_val

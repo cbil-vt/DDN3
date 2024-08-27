@@ -8,14 +8,14 @@ from ddn3.simulation import simple_data
 def ddn_pipeline(dat1, dat2, gene_names, lambda1=0.3, lambda2=0.1):
     """A wrapper around DDN
 
-    Reads two data sets and a list of genes, then runs DDN and reports common and differential networks.
+    Reads two iddn_data sets and a list of genes, then runs DDN and reports common and differential networks.
 
     Parameters
     ----------
     dat1 : array_like
-        The first data for DDN
+        The first iddn_data for DDN
     dat2 : array_like
-        The second data for DDN
+        The second iddn_data for DDN
     gene_names : list of str
         List of gene names for reporting and visualization
     lambda1 : float, optional

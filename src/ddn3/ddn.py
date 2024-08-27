@@ -2,12 +2,12 @@
 
 There are two top level DDN functions: the `ddn` and the `ddn_parallel`.
 The former one is in serial, which is easier to debug, while the latter one is in parallel.
-For smaller data sets (e.g., less than 500 nodes), the serial version is fast enough.
+For smaller iddn_data sets (e.g., less than 500 nodes), the serial version is fast enough.
 The two functions should have the same functionality.
 
 Each function allow using several different methods.
 
-- `org`: the method in DDN 2.0. This is slow for larger data sets.
+- `org`: the method in DDN 2.0. This is slow for larger iddn_data sets.
 - `resi`: the method in DDN 3.0 using residual update strategy. This is suitable for larger feature number.
 - `corr`: the method in DDN 3.0 using correlation matrix update strategy. This is suitable for larger sample number.
 - `strongrule`: using the strong rule to accelerate the condition when lambda=0.
@@ -48,9 +48,9 @@ def ddn_parallel(
     Parameters
     ----------
     g1_data : array_like, shape N1 by P
-        The data from condition 1
+        The iddn_data from condition 1
     g2_data : array_like, shape N2 by P
-        The data from condition 2
+        The iddn_data from condition 2
     lambda1 : float
         DDN parameter lambda1.
     lambda2 : float
@@ -185,9 +185,9 @@ def ddn(
     Parameters
     ----------
     g1_data : array_like, shape N1 by P
-        The data from condition 1
+        The iddn_data from condition 1
     g2_data : array_like, shape N2 by P
-        The data from condition 2
+        The iddn_data from condition 2
     lambda1 : float
         DDN parameter lambda1.
     lambda2 : float

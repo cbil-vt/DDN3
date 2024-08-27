@@ -44,8 +44,8 @@ def draw_network_for_ddn(
     Parameters
     ----------
     edges_df : pandas.DataFrame
-        Edge information. 
-        First two columns for the two feature names. 
+        Edge information.
+        First two columns for the two feature names.
         Third column for edge type (common=0, diff1=1, diff2=2)
         Fourth column for weight.
     nodes_to_draw : list of str
@@ -155,7 +155,7 @@ def _add_node_to_a_circle(pos, nodes, cen, rad, angles):
 def _angles_in_ellipse(num, a, b):
     """Calculate angles of evenly spaced points in an ellipse
 
-    Based on https://stackoverflow.com/a/52062369, 
+    Based on https://stackoverflow.com/a/52062369,
     which is from https://pypi.org/project/flyingcircus/
 
     Parameters
@@ -192,7 +192,7 @@ def _get_pos_one_part(nodes_show):
 
     Parameters
     ----------
-    nodes_show : list of str
+    nodes_show : array_like
         Node names
 
     Returns
@@ -271,7 +271,7 @@ def _create_nx_graph(
     mode="common",
     nodes_type=None,
 ):
-    """Create NetworkX graph based on edge data frame.
+    """Create NetworkX graph based on edge iddn_data frame.
 
     Add nodes and edges. Provide visualization related properties to the nodes.
 
@@ -284,8 +284,8 @@ def _create_nx_graph(
     Parameters
     ----------
     edges_df : pandas.DataFrame
-        Edge information. 
-        First two columns for the two feature names. 
+        Edge information.
+        First two columns for the two feature names.
         Third column for edge type (common=0, diff1=1, diff2=2)
         Fourth column for weight.
     nodes_show : list of str

@@ -119,7 +119,7 @@ def gen_sample_two_conditions(g1_cov, g2_cov, n1, n2):
 def create_cov_prec_mat(prec_mat_in):
     """Create covariance from temporary precision matrix
 
-    Each variable now have unit variance. 
+    Each variable now have unit variance.
     We also provide the corresponding precision matrix.
 
     We follow [Peng 2009] and do not use the d_ij term as the JGL paper.
@@ -145,7 +145,7 @@ def create_cov_prec_mat(prec_mat_in):
 
 
 def simple_data():
-    """Generate example data for the tutorial"""
+    """Generate example iddn_data for the tutorial"""
     n_node = 40
     n_sample1 = 100
     n_sample2 = 100

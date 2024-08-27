@@ -61,7 +61,7 @@ The tutorials can also be found in the `docs/notebooks` folder.
 
 To run tests, go to the folder of DDN3 source code, then run `pytest`.
 ```bash
-pytest tests
+pytest iddn_data
 ```
 It will compare the output of DDN with reference values. It tests DDN with various acceleration strategies.
 

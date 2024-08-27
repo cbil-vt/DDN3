@@ -24,9 +24,9 @@ def run_org(
     Parameters
     ----------
     g1_data : array_like, shape N1 by P
-        The data from condition 1
+        The iddn_data from condition 1
     g2_data : array_like, shape N2 by P
-        The data from condition 2
+        The iddn_data from condition 2
     node : int
         Index of the current node that serve as the response variable.
     lambda1 : float
@@ -102,9 +102,9 @@ def run_resi(
     Parameters
     ----------
     g1_data : array_like, shape N1 by P
-        The data from condition 1
+        The iddn_data from condition 1
     g2_data : array_like, shape N2 by P
-        The data from condition 2
+        The iddn_data from condition 2
     node : int
         Index of the current node that serve as the response variable.
     lambda1 : float
@@ -248,9 +248,9 @@ def run_strongrule(
     Parameters
     ----------
     g1_data : array_like, shape N1 by P
-        The data from condition 1
+        The iddn_data from condition 1
     g2_data : array_like, shape N2 by P
-        The data from condition 2
+        The iddn_data from condition 2
     node : int
         Index of the current node that serve as the response variable.
     lambda1 : float

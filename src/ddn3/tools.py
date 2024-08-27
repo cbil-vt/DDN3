@@ -5,21 +5,21 @@ import numpy as np
 
 
 def standardize_data(data, scaler="std", zero_mean_already=False):
-    """Standadize each column of the input data
+    """Standadize each column of the input iddn_data
 
     Parameters
     ----------
     data : ndarray
-        Input data. Each column is a feature.
+        Input iddn_data. Each column is a feature.
     scaler : str, optional
         Method to calculate the scale of each feature, by default "std"
     zero_mean_already : bool, optional
-        The data is already with zero mean, by default False
+        The iddn_data is already with zero mean, by default False
 
     Returns
     -------
     standard_data : ndarray
-        Standardized data
+        Standardized iddn_data
     """
 
     # sample standardization : z = (x - u) / s
@@ -44,7 +44,7 @@ def standardize_data(data, scaler="std", zero_mean_already=False):
 
 
 def gen_mv(cov_mat, n_sample):
-    """Generate zero mean multivariate data and standardize it.
+    """Generate zero mean multivariate iddn_data and standardize it.
 
     Parameters
     ----------
